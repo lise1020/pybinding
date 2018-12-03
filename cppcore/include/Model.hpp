@@ -58,6 +58,7 @@ public: // get parameters
     Primitive const& get_primitive() const { return primitive; }
     Shape const& get_shape() const { return shape; }
     TranslationalSymmetry const& get_symmetry() const { return symmetry; }
+    HamiltonianModifiers const& get_hamiltonian_modifiers() const { return hamiltonian_modifiers; }
 
 public: // get properties
     std::shared_ptr<System const> const& system() const;
@@ -111,6 +112,37 @@ private:
     mutable Chrono hamiltonian_build_time;
     mutable bool complex_override = false; ///< set if a modifier was found to (dynamically)
                                            ///< return complex output for real input data
+
+public: // external functions for user
+
+    template<class scalar_t>
+    SparseMatrixX<scalar_t> get_hamiltonian_central() const {
+        auto const& built_system = *system();
+        auto const& modifiers = hamiltonian_modifiers;
+        auto const simple_build = std::none_of(
+            structure_modifiers.begin(), structure_modifiers.end(),
+            [](StructureModifier const& m) { return is_generator(m); }
+        );
+
+        auto matrix = SparseMatrixX<scalar_t>();
+        detail::build_main(matrix, built_system, lattice, modifiers, simple_build);
+        matrix.makeCompressed();
+        detail::throw_if_invalid(matrix);
+        return matrix;
+    };
+
+    template<class scalar_t>
+    SparseMatrixX<scalar_t> get_hamiltonian_boundary(size_t boundary_index) const {
+        auto const& built_system = *system();
+        auto const& modifiers = hamiltonian_modifiers;
+
+        auto matrix = SparseMatrixX<scalar_t>();
+        detail::build_hamiltonian_boundary(matrix, built_system, lattice, boundary_index, modifiers);
+        matrix.makeCompressed();
+        detail::throw_if_invalid(matrix);
+        return matrix;
+    };
+
 };
 
 } // namespace cpb

@@ -131,6 +131,25 @@ void build_periodic(SparseMatrixX<scalar_t>& matrix, System const& system,
     }
 }
 
+template<class scalar_t>
+void build_hamiltonian_boundary(
+        SparseMatrixX<scalar_t>& matrix, System const& system, Lattice const& lattice,
+        size_t boundary_index, HamiltonianModifiers const& modifiers)
+{
+    auto const size = system.hamiltonian_size();
+    matrix.resize(size, size);
+
+    auto const has_diagonal = lattice.has_diagonal_terms() || !modifiers.onsite.empty();
+    auto const num_per_row = lattice.max_hoppings() + has_diagonal;
+    matrix.reserve(ArrayXi::Constant(size, num_per_row));
+
+    modifiers.apply_to_hoppings<scalar_t>(system, boundary_index, [&](idx_t i, idx_t j, scalar_t hopping)
+    {
+        matrix.insert(i, j) = hopping;
+        matrix.insert(j, i) = num::conjugate(hopping);
+    });
+}
+
 /// Check that all the values in the matrix are finite
 template<class scalar_t>
 void throw_if_invalid(SparseMatrixX<scalar_t> const& m) {
