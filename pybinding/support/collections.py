@@ -1,5 +1,10 @@
 import numpy as np
-from matplotlib.collections import Collection, allow_rasterization
+from matplotlib.collections import Collection
+
+try:
+    from matplotlib.collections import allow_rasterization
+except ImportError:
+    from matplotlib.artist import allow_rasterization
 
 
 # noinspection PyAbstractClass
